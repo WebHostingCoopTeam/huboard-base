@@ -12,6 +12,10 @@ RUN cd /app; sed -i 's/2.1.2/2.1.5/' Gemfile; rm Gemfile.lock
 RUN cd /app; bundle install ;
 RUN cd /app; bundle install --deployment;
 
+ADD assets/config/ /apprun/config/
+ADD assets/init /apprun/init
+RUN chmod 755 /apprun/init
+
 #ADD .env /app/.env
 #RUN echo SESSION_SECRET=$(openssl rand -base64 32) >>/app/.env
 # No need for Procfile any longer
