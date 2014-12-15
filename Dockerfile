@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update
 RUN apt-get -qq -y install memcached couchdb redis-server ruby2.1-dev build-essential libssl-dev
+RUN apt-get -qq -y install libcurl4-openssl-dev libssl-dev libmagickcore-dev libmagickwand-dev libmysqlclient-dev libpq-dev libxslt1-dev libffi-dev libyaml-dev zlib1g-dev
 
 # Install Huboard
 RUN git clone -b master https://github.com/rauhryan/huboard.git /app
