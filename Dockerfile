@@ -8,7 +8,7 @@ RUN apt-get -qq -y install libcurl4-openssl-dev libssl-dev libmagickcore-dev lib
 
 # Install Huboard
 RUN git clone -b master https://github.com/rauhryan/huboard.git /app
-# slightly alter gemfile for 2.1.5 ruby
+# slightly alter gemfile for 2.1.5 ruby.
 RUN cd /app; sed -i 's/2.1.2/2.1.5/' Gemfile; rm Gemfile.lock
 RUN cd /app; bundle install ;
 RUN cd /app; bundle install --deployment;
