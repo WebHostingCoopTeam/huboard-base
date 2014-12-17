@@ -1,0 +1,147 @@
+#!/bin/bash
+set -e
+
+HUBOARD_VERSION=20141208
+INSTALL_DIR="/app"
+DATA_DIR="/apprun/data"
+
+SETUP_DIR="/apprun/setup"
+GEM_CACHE_DIR="${SETUP_DIR}/cache"
+
+# rebuild apt cache
+# apt-get update
+
+# install build dependencies
+# apt-get install -y libcurl4-openssl-dev libssl-dev libmagickcore-dev libmagickwand-dev \
+#  libmysqlclient-dev libpq-dev libxslt1-dev libffi-dev libyaml-dev zlib1g-dev
+
+# add huboard user
+adduser --disabled-login --gecos 'Huboard' huboard
+passwd -d huboard
+
+# set PATH for huboard cron jobs
+cat > /tmp/cron.huboard <<EOF
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+EOF
+crontab -u huboard /tmp/cron.huboard
+rm -rf /tmp/cron.huboard
+
+cd ${INSTALL_DIR}
+
+# create version file
+echo "${HUBOARD_VERSION}" > ${INSTALL_DIR}/VERSION
+
+# add gems for app server and memcache support
+#echo 'gem "unicorn"' >> Gemfile
+#echo 'gem "dalli", "~> 2.7.0"' >> Gemfile
+
+# install gems, use cache if available
+if [ -d "${GEM_CACHE_DIR}" ]; then
+  mv ${GEM_CACHE_DIR} vendor/
+fi
+
+# fix permissions
+chown -R huboard:huboard ${INSTALL_DIR}
+mkdir -p /var/log/huboard
+chown -R huboard:huboard /var/log/huboard
+
+# disable default nginx configuration
+rm -f /etc/nginx/sites-enabled/default
+
+# run nginx as huboard user
+sed 's/user www-data/user huboard/' -i /etc/nginx/nginx.conf
+
+# move supervisord.log file to /var/log/huboard/supervisor/
+sed 's|^logfile=.*|logfile=/var/log/huboard/supervisor/supervisord.log ;|' -i /etc/supervisor/supervisord.conf
+
+# move nginx logs to /var/log/huboard/nginx
+sed 's|access_log /var/log/nginx/access.log;|access_log /var/log/huboard/nginx/access.log;|' -i /etc/nginx/nginx.conf
+sed 's|error_log /var/log/nginx/error.log;|error_log /var/log/huboard/nginx/error.log;|' -i /etc/nginx/nginx.conf
+
+# setup log rotation for huboard application logs
+cat > /etc/logrotate.d/huboard <<EOF
+/var/log/huboard/huboard/*.log {
+  weekly
+  missingok
+  rotate 52
+  compress
+  delaycompress
+  notifempty
+  copytruncate
+}
+EOF
+
+# setup log rotation for huboard vhost logs
+cat > /etc/logrotate.d/huboard-vhost <<EOF
+/var/log/huboard/nginx/*.log {
+  weekly
+  missingok
+  rotate 52
+  compress
+  delaycompress
+  notifempty
+  copytruncate
+}
+EOF
+
+# configure supervisord log rotation
+cat > /etc/logrotate.d/supervisord <<EOF
+/var/log/huboard/supervisor/*.log {
+  weekly
+  missingok
+  rotate 52
+  compress
+  delaycompress
+  notifempty
+  copytruncate
+}
+EOF
+
+# configure supervisord to start nginx
+cat > /etc/supervisor/conf.d/nginx.conf <<EOF
+[program:nginx]
+priority=20
+directory=/tmp
+command=/usr/sbin/nginx -g "daemon off;"
+user=root
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/huboard/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/huboard/supervisor/%(program_name)s.log
+EOF
+
+# configure supervisord to start unicorn
+cat > /etc/supervisor/conf.d/unicorn.conf <<EOF
+[program:unicorn]
+priority=10
+directory=${INSTALL_DIR}
+environment=HOME=/home/huboard
+command=bundle exec unicorn -E production -c /apprun/config/unicorn.rb
+user=huboard
+autostart=true
+autorestart=true
+stopsignal=QUIT
+stdout_logfile=/var/log/huboard/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/huboard/supervisor/%(program_name)s.log
+EOF
+
+# configure supervisord to start crond
+cat > /etc/supervisor/conf.d/cron.conf <<EOF
+[program:cron]
+priority=20
+directory=/tmp
+command=/usr/sbin/cron -f
+user=root
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/huboard/supervisor/%(program_name)s.log
+stderr_logfile=/var/log/huboard/supervisor/%(program_name)s.log
+EOF
+
+# purge build dependencies
+apt-get purge -y --auto-remove \
+  libcurl4-openssl-dev libssl-dev libmagickcore-dev libmagickwand-dev \
+  libmysqlclient-dev libpq-dev libxslt1-dev libffi-dev libyaml-dev zlib1g-dev
+
+# cleanup
+rm -rf /var/lib/apt/lists/* # 20140918
