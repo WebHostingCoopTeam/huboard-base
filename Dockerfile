@@ -1,7 +1,7 @@
 FROM joshuacox/ubuntu-nginx
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV HUBOARD_BASE_REFRESHED_AT 20141216
+ENV HUBOARD_BASE_REFRESHED_AT 20141217
 
 RUN apt-get update
 RUN apt-get -qq -y install memcached couchdb redis-server ruby2.1-dev build-essential libssl-dev
