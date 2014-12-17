@@ -28,12 +28,6 @@ ADD assets/config/ /apprun/config/
 ADD assets/config/huboard/unicorn.rb /apprun/config/
 ADD assets/init /apprun/init
 RUN chmod 755 /apprun/init
-RUN mkdir -p /app/tmp/pids
-RUN mkdir -p /app/tmp/sockets
-RUN mkdir -p /app/log
-RUN chown -R huboard. /apprun
-RUN chown -R huboard. /app
-#RUN useradd huboard
 
 # Install Huboard
 RUN git clone -b master https://github.com/rauhryan/huboard.git /app
@@ -41,6 +35,13 @@ RUN git clone -b master https://github.com/rauhryan/huboard.git /app
 RUN cd /app; sed -i 's/2.1.2/2.1.5/' Gemfile; rm Gemfile.lock
 RUN cd /app; bundle install ;
 RUN cd /app; bundle install --deployment;
+
+RUN mkdir -p /app/tmp/pids
+RUN mkdir -p /app/tmp/sockets
+RUN mkdir -p /app/log
+RUN chown -R huboard. /apprun
+RUN chown -R huboard. /app
+#RUN useradd huboard
 
 # Example usage in next layer
 #ADD .env /app/.env
