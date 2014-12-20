@@ -1,7 +1,8 @@
 FROM joshuacox/ubuntu-nginx
+MAINTAINER Josh Cox <josh 'at' webhosting.coop>
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV HUBOARD_BASE_REFRESHED_AT 20141219
+ENV HUBOARD_BASE_REFRESHED_AT 20141220
 
 
 ENV SEGMENTIO_KEY HUBOARD_SEGMENTIO_KEY
@@ -44,6 +45,8 @@ RUN chown -R huboard. /app
 #RUN useradd huboard
 
 # Example usage in next layer
+# you can find an example .env in the root directory of this repo
+# named .env.example
 #ADD .env /app/.env
 #RUN echo SESSION_SECRET=$(openssl rand -base64 32) >>/app/.env
 
